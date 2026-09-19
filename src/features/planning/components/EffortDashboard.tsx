@@ -1,0 +1,1 @@
+export function EffortDashboard({steps,limit}:{steps:number;limit:number}):JSX.Element{return <section aria-label="Effort dashboard"><strong>{steps.toLocaleString()}</strong><span> / {limit.toLocaleString()} 步</span></section>;}

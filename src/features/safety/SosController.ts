@@ -1,0 +1,2 @@
+export type SosState='idle'|'holding'|'countdown'|'sending'|'sent'|'failed'|'cancelled'; export const HOLD_MS=2000; export const CANCEL_MS=10000;
+export async function createEmergencyEvent(input:Record<string,unknown>){const base=import.meta.env.VITE_SYNC_API_BASE??'';const r=await fetch(`${base}/api/trips/${input.tripId}/emergency-events`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});if(!r.ok)throw new Error('SOS failed');return r.json();}

@@ -1,0 +1,4 @@
+export class SyncApiError extends Error { constructor(public status:number,message:string){super(message);} }
+const base=import.meta.env.VITE_SYNC_API_BASE??'';
+async function request<T>(path:string,init?:RequestInit):Promise<T>{const r=await fetch(`${base}${path}`,{headers:{'Content-Type':'application/json',...(init?.headers??{})},...init}); if(!r.ok)throw new SyncApiError(r.status,await r.text()); return r.json();}
+export const ShareClient={createSession:(input:Record<string,unknown>)=>request('/api/share-sessions',{method:'POST',body:JSON.stringify(input)}),appendTripEvent:(tripId:string,event:Record<string,unknown>)=>request(`/api/trips/${tripId}/events`,{method:'POST',body:JSON.stringify(event)}),sendHeartbeat:(heartbeat:Record<string,unknown>)=>request(`/api/trips/${heartbeat.tripId}/heartbeat`,{method:'POST',body:JSON.stringify(heartbeat)})};

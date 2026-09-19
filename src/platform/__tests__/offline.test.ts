@@ -1,0 +1,2 @@
+import { describe, expect, it } from 'vitest'; import { createMemoryOfflineStore } from '../offlineStore';
+describe('offline store',()=>{it('removes exact coordinates from queued events',async()=>{const s=createMemoryOfflineStore();await s.queueOfflineTripEvent({type:'arrived',placeId:'p',lat:1,lon:2});expect((await s.listQueuedTripEvents())[0]).not.toHaveProperty('lat');expect((await s.listQueuedTripEvents())[0]).not.toHaveProperty('lon');});});

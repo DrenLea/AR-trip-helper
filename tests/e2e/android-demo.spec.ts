@@ -1,0 +1,4 @@
+import { expect, test } from '@playwright/test';
+test.use({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+test('Rome route exposes planning, AR, sharing and SOS surfaces',async({page})=>{await page.goto('/');await expect(page.getByRole('tab',{name:'罗马'})).toBeVisible();await page.getByRole('button',{name:'重新规划'}).click();await expect(page.getByText('预计步数',{exact:true})).toBeVisible();await expect(page.getByText(/ARRIVAL CONTENT/)).toBeVisible();await expect(page.getByText(/同行守护/)).toBeVisible();});
+test('Guiyang route accepts a lower step budget',async({page})=>{await page.goto('/');await page.getByRole('tab',{name:'贵阳'}).click();await page.getByLabel('轮椅或助行器优先').check();await page.getByLabel('每日步数上限').fill('5000');await page.getByRole('button',{name:'重新规划'}).click();await expect(page.getByText(/不超过 5,000/)).toBeVisible();});

@@ -1,0 +1,1 @@
+import type { Itinerary } from '../../../domain/models'; export function ItineraryTimeline({itinerary}:{itinerary:Itinerary}):JSX.Element{return <ol>{itinerary.stops.map(s=><li key={s.placeId}>{s.placeId} · {s.kind}</li>)}</ol>;}

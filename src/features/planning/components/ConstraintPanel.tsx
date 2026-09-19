@@ -1,0 +1,1 @@
+export function ConstraintPanel({onReplan}:{onReplan:()=>void}):JSX.Element{return <section aria-label="Planning constraints"><h3>规划约束</h3><button type="button" onClick={onReplan}>重新规划</button></section>;}

@@ -1,0 +1,1 @@
+export function EmergencySheet({targets}:{targets:string[]}):JSX.Element{return <section aria-label="Emergency contacts"><h3>紧急电话</h3>{targets.map(t=><a key={t} href={`tel:${t}`}>{t}</a>)}<p>本功能仅通知已授权联系人，不代表已联系警方、医院或救援机构。</p></section>}

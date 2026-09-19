@@ -1,0 +1,1 @@
+import type { Itinerary } from '../../../domain/models'; export function ExplanationDrawer({itinerary}:{itinerary:Itinerary}):JSX.Element{return <details><summary>为什么这样安排</summary><ul>{itinerary.explanations.map((e,i)=><li key={`${e.code}-${i}`}>{e.message}</li>)}</ul></details>;}

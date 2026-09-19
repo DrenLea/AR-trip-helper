@@ -1,0 +1,5 @@
+import type { HeritageAsset } from '../../domain/models';
+export type ArMode='webxr'|'camera-overlay'|'model-viewer'|'link-only';
+export interface ArResolveInput { capabilities:{webXr:boolean;camera:boolean;deviceOrientation:boolean}; asset?:HeritageAsset }
+export function resolveArMode(input:ArResolveInput):{mode:ArMode;reason:string} { if(!input.asset)return {mode:'link-only',reason:'No licensed asset available'}; if(input.capabilities.webXr)return {mode:'webxr',reason:'WebXR available'}; if(input.asset.type==='glb')return {mode:'model-viewer',reason:'WebXR unavailable; using model-viewer fallback'}; if(input.capabilities.camera&&input.capabilities.deviceOrientation)return {mode:'camera-overlay',reason:'Camera overlay fallback'}; return {mode:'link-only',reason:'Device capability fallback'}; }
+export function detectArCapabilities() { const n=navigator as Navigator & {xr?:unknown}; return {webXr:Boolean(n.xr),camera:Boolean(n.mediaDevices?.getUserMedia),deviceOrientation:'DeviceOrientationEvent' in window}; }
