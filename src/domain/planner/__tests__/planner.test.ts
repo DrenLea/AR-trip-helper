@@ -1,0 +1,4 @@
+import { describe, expect, it } from 'vitest';
+import { getCityPack } from '../../../city-packs/registry';
+import { planDay, summarizeTransitLeg } from '../buildItinerary';
+describe('planner',()=>{it('keeps walk legs within limit',()=>{const i=planDay({cityPack:getCityPack('guiyang'),date:'2026-10-03',startPlaceId:'guiyang-hotel',endPlaceId:'guiyang-hotel',interests:{history:2,nature:1},constraints:{maxDailySteps:6500,maxSingleWalkM:900,restEveryMin:70,mealWindows:[{type:'lunch',start:'12:00',end:'13:30'}],wheelchairMode:true}}); expect(i.legs.filter(l=>l.mode==='walk').every(l=>(l.distanceM??0)<=900)).toBe(true);}); it('summarizes transit metadata',()=>expect(summarizeTransitLeg({mode:'transit',from:'rome-colosseum',to:'rome-pantheon',durationMin:24,transfers:1,routeRef:'rome-bus-87',riskFlags:[],dataFreshAt:'2026-09-19'}).routeName).toContain('87'));});

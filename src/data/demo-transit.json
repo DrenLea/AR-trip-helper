@@ -1,0 +1,1 @@
+[{"routeRef":"rome-bus-87","routeName":"Bus 87","operator":"ATAC","fromStop":"Colosseo","toStop":"Argentina","transfers":1,"source":"ATAC GTFS sample","freshAt":"2026-09-19"},{"routeRef":"guiyang-metro-1","routeName":"Metro Line 1","operator":"Guiyang transit","fromStop":"Jiaxiu","toStop":"Qianling","transfers":0,"source":"Guiyang transit sample","freshAt":"2026-09-19"}]

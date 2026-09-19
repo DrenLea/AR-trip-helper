@@ -1,0 +1,7 @@
+import { useState } from 'react';
+import type { Itinerary } from '../../domain/models';
+import { summarizeTransitLeg } from '../../domain/planner/buildItinerary';
+import { mapStyles } from './mapStyles';
+export function MapView({ itinerary }: { itinerary: Itinerary }): JSX.Element { const [failed,setFailed]=useState(false); return <section aria-label="Route map" className="map-view">{failed ? <RouteSummary itinerary={itinerary}/> : <div style={mapStyles} role="img" aria-label="Interactive route map"><div className="map-fallback-grid"><strong>{itinerary.stops.length} stops</strong><span>OpenStreetMap · Leaflet</span><button type="button" onClick={()=>setFailed(true)}>Use accessible text route</button></div></div>} {!failed && <button type="button" onClick={()=>setFailed(true)} onError={()=>setFailed(true)}>Show text route</button>}</section> }
+function RouteSummary({itinerary}:{itinerary:Itinerary}) { return <div className="route-summary"><h3>Route summary</h3><ol>{itinerary.stops.map((s,i)=><li key={`${s.placeId}-${i}`}><strong>{s.placeId}</strong>{i>0 && <span>{itinerary.legs[i-1]?.mode} · {itinerary.legs[i-1]?.durationMin} min · {Math.round(itinerary.legs[i-1]?.distanceM??0)} m{itinerary.legs[i-1]?.mode==='transit' ? ` · ${summarizeTransitLeg(itinerary.legs[i-1]).transfers} transfers` : ''}</span>}</li>)}</ol><small>Map data © OpenStreetMap contributors</small></div> }
+export default MapView;

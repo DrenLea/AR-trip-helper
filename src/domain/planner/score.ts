@@ -1,0 +1,4 @@
+import type { CityPack, Place, PlanningConstraints } from '../models';
+export interface ScoreContext { interests: Record<string, number>; cityPack: CityPack; constraints: PlanningConstraints }
+export interface ScoreBreakdown { total: number; interest: number; accessibility: number; burden: number; freshness: number }
+export function scorePlace(place: Place, context: ScoreContext): ScoreBreakdown { const interest = place.interestTags.reduce((s,t)=>s+(context.interests[t]??0),0); const accessibility = context.constraints.wheelchairMode ? (place.access?.stepFree==='yes'?4:place.access?.stepFree==='unknown'?-1:-5) : 0; const burden = place.access?.slopeRisk==='high' ? -3*context.cityPack.rules.slopeRiskMultiplier : 0; const freshness = place.sourceRefs.length ? 1 : -2; return {total:interest+accessibility+burden+freshness,interest,accessibility,burden,freshness}; }
