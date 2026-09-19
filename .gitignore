@@ -6,5 +6,6 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+.tmp-server/
 .env
 .env.*
