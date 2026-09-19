@@ -25,10 +25,11 @@ AR Trip Helper 是一个以“体力与时间双预算”为核心的自由行�
 4. 抵达 POI 后可播放短解说，并尝试加载带许可证元数据的在线 glTF/GLB 或 WebXR 内容。
 5. Android Chrome 无 WebXR 时降级为相机叠加、3D 预览或普通地图，不阻断行程。
 6. 数据源不可用、闭馆、交通数据过期时有明确降级和更新时间提示。
+7. 旅行者可以把行程和低频进度分享给子女、看护人或朋友，并在危险时发起 SOS。
 
 ### 非目标（24 小时内不做）
 
-- 原生 Android App、后台持续定位、社交分享、支付/订票。
+- 原生 Android App、后台持续定位、群聊、支付/订票。
 - 自建 3D 模型、AI 生成历史复原、全量爬取点评网站。
 - 对所有城市做实时、全量、商业级无障碍保证。
 - 直接复制无明确再分发许可的图片、模型、点评文本。
@@ -52,12 +53,16 @@ AR Trip Helper 是一个以“体力与时间双预算”为核心的自由行�
 5. 用户锁定或替换节点，系统局部重算，不重新生成整条行程。
 6. 到达节点后打开“解说/AR”：文本、语音、图片或远程 3D 资产按许可证与设备能力降级。
 7. 用户可反馈“实际更累/入口关闭/无障碍不准确”，写入本地事件日志，供后续校准。
+8. 旅行者生成短期分享链接/二维码，选择接收人角色和信息范围；家属或看护人通过浏览器查看行程状态。
+9. 行程事件（到达、跳过、延误、局部重算）按版本增量同步；网络恢复后补传本地事件。
+10. 旅行者长按 SOS 2 秒确认，向已授权联系人发送状态和位置，并提供当地紧急电话入口。
 
 ## 5. 系统架构
 
 ```text
 PWA UI (Android Chrome)
   ├─ 行程时间轴 / 地图 / 体力仪表盘 / 解说与 AR 面板
+  ├─ 分享/联系人/权限页、家属只读守护页、SOS 页
   └─ 本地缓存、离线最近一次行程、设备能力检测
         │ REST/JSON
 Planner API
@@ -66,6 +71,13 @@ Planner API
   ├─ Constraint Planner（过滤、候选、排序、局部重算）
   ├─ Explanation Engine（评分与排除原因）
   └─ Content/AR Resolver（许可、资产格式、降级）
+        │
+Sync/Safety API
+  ├─ ShareSession（短期分享会话与撤销）
+  ├─ TripEventLog（行程事件和版本）
+  ├─ PresenceHeartbeat（低频进度心跳）
+  ├─ AccessPolicy（旅行者/看护人/同行者权限）
+  └─ EmergencyEvent（SOS 状态与通知结果）
         │
 Cache/Index（GeoJSON、GTFS、POI、内容清单）
 ```
@@ -77,7 +89,16 @@ Cache/Index（GeoJSON、GTFS、POI、内容清单）
 - `planner`：只依赖内部模型和用户约束，不读取具体供应商字段。
 - `explanations`：输出评分分解、硬约束命中、降级原因；禁止在 UI 中重新计算。
 - `content-ar`：校验许可证、来源、版本、设备能力，返回 `webxr | camera-overlay | model-viewer | link-only`。
-- `telemetry`：只记录匿名规划耗时、数据源状态、用户显式反馈；默认不上传精确位置。
+- `sync-safety`：管理短期分享、角色权限、增量事件、低频心跳和 SOS；不承担自动救援承诺。
+- `telemetry`：只记录匿名规划耗时、数据源状态、用户显式反馈和通知成功率；默认不上传精确位置。
+
+### 同行守护角色
+
+- `traveler`：可编辑行程、生成/撤销分享、选择位置范围、触发 SOS。
+- `caregiver`：默认只读查看行程、当前节点、粗粒度位置、步数进度和异常状态；不可静默改写行程。
+- `companion`：默认只读，可按授权获得评论或共同编辑能力。
+
+分享会话默认短期有效、最小权限、可随时撤销；精确位置必须单独授权。链接只包含不可猜测的随机 Token，不把姓名、手机号或坐标编码进 URL。
 
 ## 6. 统一数据模型（MVP）
 
@@ -98,6 +119,24 @@ type Leg = { mode: 'walk'|'transit'|'rest'|'meal'; from: string; to: string;
 type Itinerary = { cityId: string; date: string; stops: Stop[]; legs: Leg[];
   totals: { steps: number; walkM: number; transitMin: number; transfers: number; backtrackM: number };
   explanations: Explanation[]; freshness: FreshnessReport };
+
+type ShareSession = { id: string; tripId: string;
+  role: 'traveler'|'caregiver'|'companion';
+  scopes: ('itinerary'|'progress'|'coarse_location'|'precise_location')[];
+  expiresAt: string; revokedAt?: string };
+
+type TripEvent = { id: string; tripId: string; version: number; at: string;
+  type: 'arrived'|'skipped'|'delayed'|'rerouted'|'locked'|'unlocked';
+  placeId?: string; payload?: Record<string, unknown> };
+
+type ProgressHeartbeat = { tripId: string; at: string;
+  status: 'moving'|'at_stop'|'resting'|'delayed'|'sos'; placeId?: string;
+  lat?: number; lon?: number; precision: 'exact'|'coarse';
+  steps?: number; battery?: number };
+
+type EmergencyEvent = { id: string; tripId: string; at: string;
+  location?: { lat: number; lon: number; precision: 'exact'|'coarse' };
+  contactsNotified: string[]; callTarget?: string; cancelledAt?: string };
 ```
 
 ## 7. 规划算法与约束优先级
@@ -150,15 +189,36 @@ type Itinerary = { cityId: string; date: string; stops: Stop[]; legs: Leg[];
 - AR 适配顺序：WebXR hit-test/地理锚点 → 相机叠加 + 方位校准 → `<model-viewer>` 3D 预览 → 外部资产链接。
 - 不自行生成 3D 模型，不复制来源站点未授权媒体。
 
-## 10. Android PWA 技术约束
+## 10. 同行守护、分享与 SOS
+
+### 行程分享与同步
+
+旅行者生成短期分享链接或二维码，配置有效期（本次行程、24 小时或 7 天）、角色和信息范围（完整行程、进度、粗粒度位置、精确位置）。接收方无需安装 App，通过 PWA 只读页查看“计划/当前/已完成/异常”状态。
+
+行程采用版本号和事件日志。锁定节点、替换 POI、延迟、跳过和局部重算均产生事件；旅行者的锁定操作优先，多人冲突显示为待确认，不静默覆盖。网络中断时本地记录，恢复后增量同步。默认每 5–10 分钟或到达节点时发送一次心跳，不持续上传轨迹。
+
+### SOS 约束
+
+SOS 使用长按 2 秒和 10 秒取消倒计时，避免误触。触发后向已授权联系人发送 SOS、最后一次心跳、当前行程和位置，并提供当地紧急电话入口：罗马默认 112，贵阳提供 110/120/119。网络不可用时优先尝试电话拨号，同时保存待发送事件。系统不宣称自动联系警察、医院或救援机构，所有通知显示“已发送/失败/待重试”。
+
+### 隐私与安全
+
+- 联系人必须由旅行者主动添加并确认；默认最小权限和短期有效。
+- 精确位置只有旅行者主动授权才共享；服务端不长期保存完整轨迹。
+- 家属端展示最后更新时间、电量和数据新鲜度，避免把过期位置误认为实时位置。
+- 位置、SOS 和联系人数据使用 HTTPS 传输；日志脱敏，分享 Token 可撤销并防重放。
+- 设备拒绝定位/通知权限时，仍可查看行程并手动拨号；UI 明确展示能力边界。
+
+## 11. Android PWA 技术约束
 
 - HTTPS、Service Worker、Web App Manifest、响应式布局、大字号模式。
 - Android Chrome 优先；检测 WebXR、陀螺仪、定位授权和网络状态。
 - 首屏只加载当前城市包、当前路线和必要地图瓦片；AR 资产按需加载并限制大小。
 - 离线缓存最近一次行程、城市基础 POI 和解说摘要；不缓存敏感精确轨迹。
 - 需要定位/相机/传感器权限时在用户点击对应功能后再请求，并提供拒绝后的地图降级。
+- 通知权限仅在用户开启同行守护后请求；后台同步以低频事件为主，不承诺持续后台定位。
 
-## 11. 24 小时开发切片
+## 12. 24 小时开发切片
 
 ### 0–2 小时：骨架
 
@@ -180,15 +240,19 @@ type Itinerary = { cityId: string; date: string; stops: Stop[]; legs: Leg[];
 
 接入体力、坡度、无障碍字段与精选路线，复用同一规划接口。
 
-### 18–21 小时：Android QA
+### 18–20 小时：同行守护与 SOS
+
+实现分享链接/二维码、家属只读页、角色权限、事件增量同步、低频心跳、SOS 长按/取消倒计时、联系人通知模拟和紧急电话入口。
+
+### 20–22 小时：Android QA
 
 测试权限拒绝、断网、过期 GTFS、超步数、闭馆、无 AR 能力等场景。
 
-### 21–24 小时：演示与文档
+### 22–24 小时：演示与文档
 
 准备 3 分钟演示脚本、架构图、数据许可清单、已知限制和下一步路线图。
 
-## 12. 验收标准
+## 13. 验收标准
 
 - 新增城市只修改城市包/适配器，不修改规划器核心逻辑。
 - 罗马路线满足用户设定的步数、时间窗、休息和用餐约束；每个推荐/排除项有解释。
@@ -197,13 +261,19 @@ type Itinerary = { cityId: string; date: string; stops: Stop[]; legs: Leg[];
 - 贵阳模式能显示无障碍“已验证/未知/有风险”，不能把未知宣称为无障碍。
 - 断网或单一数据源失败时，用户仍能查看最近一次行程或预置样例。
 - Android Chrome 首屏可操作，字号和触控目标适合银发用户。
+- 旅行者能生成可撤销、可过期的分享链接；家属端能看到计划、当前节点、进度和最后更新时间。
+- 到达/跳过/延误事件能增量同步；断网后恢复可补传，冲突不会静默覆盖。
+- SOS 必须长按确认，能展示通知成功/失败状态，并提供罗马 112 或贵阳 110/120/119 拨号入口。
+- 精确位置默认关闭，拒绝定位/通知权限后仍有清晰降级路径。
 
-## 13. 风险与后续
+## 14. 风险与后续
 
 - 地图/点评 API 配额和许可：用适配器、缓存与本地精选快照隔离风险。
 - 无障碍数据不完整：分级标记“已验证/未知/有风险”，引导用户反馈。
 - AR 地理锚定漂移：提供手动校准和普通地图兜底。
 - 历史内容准确性：每条解说保留来源、编辑者和置信度，不让模型杜撰。
 - 实时交通波动：首发以静态 GTFS 为基线，实时信息仅改变提示，不破坏已确认行程。
+- 社交分享与 SOS 可能泄露位置或造成虚假安全感：采用短期 Token、最小权限、低频心跳、更新时间提示和明确的非救援免责声明。
+- Android 浏览器后台限制会影响持续同步：把“节点事件 + 低频心跳”作为可验证能力，后台连续定位列为后续原生能力。
 
 后续扩展顺序：更多罗马遗产资产 → 贵阳真实无障碍数据 → 上海/京都城市包 → 预约/票务 → 用户共享与个性化模型。
