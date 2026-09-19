@@ -1,3 +1,3 @@
 import places from '../data/guiyang.places.json';
 import { assertCityPack, type CityPack } from '../domain/models';
-export const guiyangPack: CityPack = assertCityPack({ id:'guiyang', name:'Guiyang', places, heritageAssets:[], rules:{ walkingEffortMultiplier:1.25, slopeRiskMultiplier:1.4, defaultTransitLabel:'Guiyang transit sample', themeTags:['step-free','low-slope','rest-friendly'], emergencyTargets:['110','120','119'] } });
+export const guiyangPack: CityPack = assertCityPack({ id:'guiyang', name:'Guiyang', places, heritageAssets:[], rules:{ walkingEffortMultiplier:1.25, slopeRiskMultiplier:1.4, defaultTransitLabel:'Guiyang transit sample', themeTags:['step-free','low-slope','rest-friendly'], emergencyTargets:['110','120','119'], transitRoutes:[{routeRef:'guiyang-metro-1',routeName:'Metro Line 1',fromStop:'Jiaxiu',toStop:'Qianling',source:'Guiyang transit sample',freshAt:'2026-09-19',departure:'10:00',arrival:'10:20',transfers:0}] } });
