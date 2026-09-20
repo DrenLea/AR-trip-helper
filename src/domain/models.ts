@@ -14,12 +14,12 @@ export interface Place {
   rating?: number; ratingCount?: number; durationMin?: number; address?: string;
 }
 export interface HeritageAsset { id: string; placeId: string; type: 'glb' | 'image' | 'audio' | 'link'; url: string; license: string; attribution: string; sourceUrl: string; redistributable: boolean; checkedAt: string }
-export interface Leg { mode: TransitMode; from: string; to: string; distanceM?: number; durationMin: number; transfers?: number; routeRef?: string; riskFlags: string[]; dataFreshAt?: string }
+export interface Leg { mode: TransitMode; from: string; to: string; distanceM?: number; durationMin: number; transfers?: number; routeRef?: string; riskFlags: string[]; dataFreshAt?: string; walkingDistanceM?: number }
 export interface Stop { placeId: string; kind: PlaceCategory; arrival?: string; departure?: string; durationMin?: number; locked?: boolean }
 export interface Explanation { code: string; severity: ExplanationSeverity; placeId?: string; message: string; sourceRefs?: SourceRef[] }
-export interface Itinerary { cityId: CityId; date: string; stops: Stop[]; legs: Leg[]; totals: { steps: number; walkM: number; transitMin: number; transfers: number; backtrackM: number }; explanations: Explanation[]; freshness: { sources: SourceRef[] } }
+export interface Itinerary { cityId: CityId; date: string; stops: Stop[]; legs: Leg[]; totals: { steps: number; walkM: number; transitMin: number; transfers: number; backtrackM: number; restMin?: number; visitMin?: number; durationMin?: number }; effort?: { level: 'light' | 'moderate' | 'high'; label: string; estimatedMinutes: number }; explanations: Explanation[]; freshness: { sources: SourceRef[] } }
 export interface MealWindow { type: 'breakfast' | 'lunch' | 'dinner'; start: string; end: string }
-export interface PlanningConstraints { maxDailySteps: number; maxSingleWalkM: number; restEveryMin: number; mealWindows: MealWindow[]; wheelchairMode?: boolean; dayStart?: string; dayEnd?: string }
+export interface PlanningConstraints { maxDailySteps: number; maxSingleWalkM: number; restEveryMin: number; mealWindows: MealWindow[]; wheelchairMode?: boolean; dayStart?: string; dayEnd?: string; minVisitCount?: number; maxVisitCount?: number; restDurationMin?: number }
 export interface TransitRouteConfig { routeRef: string; routeName: string; fromStop: string; toStop: string; source: string; freshAt: string; departure?: string; arrival?: string; transfers?: number }
 export interface CityPack { id: CityId; name: string; places: Place[]; heritageAssets: HeritageAsset[]; rules: { walkingEffortMultiplier: number; slopeRiskMultiplier: number; defaultTransitLabel: string; themeTags: string[]; emergencyTargets: string[]; transitRoutes?: TransitRouteConfig[] } }
 export interface ShareSession { token: string; tripId: string; role: 'caregiver' | 'companion'; scopes: string[]; expiresAt: string }
@@ -45,3 +45,4 @@ export function assertCityPack(value: unknown): CityPack {
   for (const a of v.heritageAssets) { const x=object(a); for (const k of ['id','placeId','type','url','license','attribution','sourceUrl','checkedAt']) if(typeof x[k]!=='string') throw new Error(`HeritageAsset requires ${k}`); if(typeof x.redistributable!=='boolean') throw new Error('HeritageAsset redistributable is invalid'); }
   return v as unknown as CityPack;
 }
+
